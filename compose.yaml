@@ -4,12 +4,12 @@ services:
     image: alimpay-bun:local
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${ALIMPAY_HOST_PORT:-3001}:3000"
+      - "127.0.0.1:3001:3001"
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3001
-      DATA_DIR: /data/AliMPay
+      DATA_DIR: /data # container mount target for host ./data
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?请设置 PUBLIC_BASE_URL}
       APP_MASTER_KEY: ${APP_MASTER_KEY:-}
       TRUST_PROXY: "true"
