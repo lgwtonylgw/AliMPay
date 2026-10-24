@@ -8,8 +8,8 @@ services:
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
-      PORT: 3000
-      DATA_DIR: /data
+      PORT: 3001
+      DATA_DIR: /data/AliMPay
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?请设置 PUBLIC_BASE_URL}
       APP_MASTER_KEY: ${APP_MASTER_KEY:-}
       TRUST_PROXY: "true"

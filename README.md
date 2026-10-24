@@ -130,6 +130,8 @@ curl -fsS http://127.0.0.1:3001/healthz
 
 Compose 默认只把宿主机端口绑定到 `127.0.0.1:3001`，容器内部仍监听 3000，不会与宿主机上使用 3000 的 new-api 冲突。若在 `.env` 修改 `ALIMPAY_HOST_PORT`，下面的健康检查和反向代理端口也需对应修改。应由 Caddy、Nginx 或其他 HTTPS 反向代理对外提供服务。Nginx 最小配置示例：
 
+Compose 使用 `.env` 为 `ALIMPAY_HOST_PORT`、`PUBLIC_BASE_URL` 和 `APP_MASTER_KEY` 插值，但容器的 `PORT=3000` 与 `DATA_DIR=/data` 由 `compose.yaml` 指定；`.env` 中同名的 `PORT`、`DATA_DIR` 不会覆盖它们。挂载 `./data:/data` 表示宿主机项目目录下的 `data/.master-key` 在容器内显示为 `/data/.master-key`。如果 `APP_MASTER_KEY` 非空，程序直接使用它，不读取 `.master-key`；更改该值后需重新创建容器，仅运行 `docker compose restart` 不会应用新的环境变量。
+
 ```nginx
 server {
     listen 443 ssl http2;
