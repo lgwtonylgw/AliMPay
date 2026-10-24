@@ -109,6 +109,8 @@ sudo journalctl -u alimpay -n 100 --no-pager
 
 ## Docker Compose（可选）
 
+与同机占用宿主机 3000 端口的 new-api 一起部署时，参见 [完整部署教程](DEPLOY_WITH_NEW_API.md)。
+
 创建 `.env`：
 
 ```dotenv
@@ -139,13 +141,34 @@ server {
         proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_read_timeout 30s;
     }
 }
 ```
 
 无论直接运行还是使用 Compose，都应把 `data` 目录放在持久磁盘并纳入备份。
+
+如果 Compose 日志出现 `EACCES: permission denied, open '/data/.master-key'`，说明宿主机 `./data` 中的文件权限与容器内运行应用的 `bun` 用户不匹配。不要删除或重新生成 `.master-key`，否则已保存的加密配置可能无法解密。在 AliMPay 项目目录执行：
+
+```bash
+pwd
+ls -ld ./data ./data/.master-key
+docker compose stop alimpay
+ALI_UID=$(docker compose run --rm --no-deps --entrypoint id alimpay -u)
+ALI_GID=$(docker compose run --rm --no-deps --entrypoint id alimpay -g)
+sudo chown -R "${ALI_UID}:${ALI_GID}" ./data
+sudo chmod -R u+rwX ./data
+sudo chmod 600 ./data/.master-key
+docker compose run --rm --no-deps --entrypoint sh alimpay -c 'id; ls -ldn /data; tmp=$(mktemp /data/.write-probe.XXXXXX) && rm "$tmp"'
+docker compose up -d
+docker compose logs --tail=30 alimpay
+curl -fsS http://127.0.0.1:3001/healthz
+```
+
+若修改过 `ALIMPAY_HOST_PORT`，最后一行也要改为相同端口。此操作只调整现有持久化文件的所有者和权限，不修改密钥内容。
+
+若接着出现 `SQLITE_READONLY_DIRECTORY`，先停止服务，不要删除 `alimpay.sqlite-wal` 或 `alimpay.sqlite-shm`。SQLite 需要在数据库所在的 `/data` 目录创建日志文件；先运行上面的容器内写入检查。如果检查失败，用 `findmnt -T ./data -o TARGET,SOURCE,FSTYPE,OPTIONS` 核对宿主机文件系统是否只读或使用网络文件系统，并核对当前 Compose 项目目录是否就是挂载的 `./data`。如果目录可写，再检查 `ls -ln ./data/alimpay.sqlite*` 和这些文件的容器内读写权限。
 
 ## 首次配置顺序
 
