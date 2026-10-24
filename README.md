@@ -113,6 +113,8 @@ sudo journalctl -u alimpay -n 100 --no-pager
 
 ```dotenv
 PUBLIC_BASE_URL=https://pay.example.com
+# 可选：宿主机端口，默认 3001；如被占用可改成其他未使用端口
+ALIMPAY_HOST_PORT=3001
 # APP_MASTER_KEY 可留空，由程序首次启动自动生成
 ```
 
@@ -121,10 +123,10 @@ PUBLIC_BASE_URL=https://pay.example.com
 ```bash
 docker compose up -d --build
 docker compose ps
-curl -fsS http://127.0.0.1:3000/healthz
+curl -fsS http://127.0.0.1:3001/healthz
 ```
 
-Compose 默认只把端口绑定到 `127.0.0.1:3000`，应由 Caddy、Nginx 或其他 HTTPS 反向代理对外提供服务。Nginx 最小配置示例：
+Compose 默认只把宿主机端口绑定到 `127.0.0.1:3001`，容器内部仍监听 3000，不会与宿主机上使用 3000 的 new-api 冲突。若在 `.env` 修改 `ALIMPAY_HOST_PORT`，下面的健康检查和反向代理端口也需对应修改。应由 Caddy、Nginx 或其他 HTTPS 反向代理对外提供服务。Nginx 最小配置示例：
 
 ```nginx
 server {
@@ -134,7 +136,7 @@ server {
     client_max_body_size 6m;
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
